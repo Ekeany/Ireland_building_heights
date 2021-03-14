@@ -1,0 +1,58 @@
+# install miniconda python
+wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
+sudo chmod +x Miniconda2-latest-Linux-x86_64.sh
+./Miniconda2-latest-Linux-x86_64.sh
+source ~/.bashrc
+sudo apt install python-pip
+
+conda create --name data-downloader
+conda activate data-downloader
+pip install sentinelsat pandas datetime pathlib
+
+sudo chown -R $USER /home/ubuntu/
+sed -i 's/DONE/QUEUED/' Dublin.txt
+
+0201009T113331_N0209_R080_T29UPV_20201009T134419/S2A_MSIL1C_20201009T113331_N0209_R080_T29UPV_20201$
+Computing tile origin in dst_srs failed. Starting datacube failed.
+Starting datacube(s) failed.
+
+
+
+force-level1-sentinel2 /home/ubuntu/newvolume/level1 /home/ubuntu/newvolume/level1/Dublin.txt "-6.2893295/53.3650992, -6.2903595/53.3230811, -6.2199783/53.3222609, -6.2192917/53.3644846, -6.2893295/53.3650992" 2020-01-01 2020-01-31 0 70 dry  
+
+
+'PROJCS["IRENET95 / Irish Transverse Mercator",GEOGCS["IRENET95",DATUM["IRENET95",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6173"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4173"]],UNIT["metre",1,AUTHORITY["EPSG","9001"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",53.5],PARAMETER["central_meridian",-8],PARAMETER["scale_factor",0.99982],PARAMETER["false_easting",600000],PARAMETER["false_northing",750000],AUTHORITY["EPSG","2157"],AXIS["Easting",EAST],AXIS["Northing",NORTH]]'
+
+
+
+force-cube /home/ubuntu/20200724_LEVEL2_S1AIA_SIG.tif /home/ubuntu/test_data near 10
+/home/ubuntu/test_data/X0001_Y0003/20200724_LEVEL2_S1AIA_SIG.tif
+
+
+/home/ubuntu/newvolume/sentinel_2C_queue.txt
+
+/home/ubuntu/newvolume/code/data/level2
+/home/ubuntu/newvolume/code/data/log
+/home/ubuntu/newvolume/code/data/misc
+/home/ubuntu/newvolume/code/data/temp
+
+
+'PROJCS["TM65 / Irish Grid",GEOGCS["TM65",DATUM["TM65",SPHEROID["Airy Modified 1849",6377340.189,299.3249646,AUTHORITY["EPSG","7002"]],TOWGS84[482.5,-130.6,564.6,-1.042,-0.214,-0.631,8.15],AUTHORITY["EPSG","6299"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4299"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",53.5],PARAMETER["central_meridian",-8],PARAMETER["scale_factor",1.000035],PARAMETER["false_easting",200000],PARAMETER["false_northing",250000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","29902"]]'
+
+
+force-level1-sentinel2 /home/ubuntu/newvolume/level1/ /home/ubuntu/newvolume/level1/Dublin.txt "-6.2893295/53.3650992,-6.2903595/53.3230811,-6.2199783/53.3222609,-6.2192917/53.3644846,-6.2893295/53.3650992" 2020-01-01 2020-02-31 0 70
+
+
+gdalbuildvrt -input_file_list /home/ubuntu/data/DEM_ireland/all_ireland_srtm.txt /home/ubuntu/data/DEM_ireland/srtm.vrt
+
+
+
+cat /home/ubuntu/newvolume/log/* | tail
+
+
+
+
+
+/home/ubuntu/newvolume/level1/T29UPV/S2A_MSIL1C_20200103T113451_N0208_R080_T29UPV_20200103T120403.SAFE: dc:  79.91%. wc:  20.90%. sc:   1.27%. cc:  27.50%. AOD: 0.3162. # of targets: 1/7242. 15 product(s) written. Success! Processing time: 20 mins 39 secs
+/home/ubuntu/newvolume/level1/T29UPV/S2A_MSIL1C_20200106T114451_N0208_R123_T29UPV_20200106T120826.SAFE: dc: 100.00%. wc:   3.86%. sc:   2.19%. cc:  75.61%. Skip. Processing time: 09 mins 19 secs
+/home/ubuntu/newvolume/level1/T29UPV/S2A_MSIL1C_20200123T113351_N0208_R080_T29UPV_20200123T115546.SAFE: /home/ubuntu/newvolume/level1/T29UPV/S2B_MSIL1C_20200

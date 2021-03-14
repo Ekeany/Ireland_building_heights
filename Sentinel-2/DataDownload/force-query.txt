@@ -1,0 +1,1 @@
+force-level1-sentinel2 /home/ubuntu/newvolume/level1/ /home/ubuntu/newvolume/level1/Dublin.txt "-6.2893295/53.3650992,-6.2903595/53.3230811,-6.2199783/53.3222609,-6.2192917/53.3644846,-6.2893295/53.3650992" 2020-01-01 2020-02-31 0 70

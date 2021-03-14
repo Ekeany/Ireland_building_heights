@@ -1,0 +1,6 @@
+cube a single file:
+force-cube /home/ubuntu/IE001L1_Dublin_UA2012_DHM_v010.tif  /home/ubuntu/level1 near 10
+
+
+cube all the files in directory:
+for f in *.tif; do force-cube $f /home/ubuntu/newvolume/cubed near 10; done

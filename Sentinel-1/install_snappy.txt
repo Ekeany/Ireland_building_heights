@@ -1,0 +1,142 @@
+#!/bin/bash
+sudo apt update
+
+# install OpenJDK
+sudo apt install openjdk-8-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+echo $JAVA_HOME
+
+export PATH=$PATH:$JAVA_HOME/bin
+echo $PATH
+
+java -version
+
+
+# install miniconda python
+wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
+sudo chmod +x Miniconda2-latest-Linux-x86_64.sh
+./Miniconda2-latest-Linux-x86_64.sh
+source ~/.bashrc
+
+conda config --set restore_free_channel true
+conda create --name esa-snap-dev python=2.7
+conda activate esa-snap-dev
+conda deactivate
+
+
+# install esa-snap
+# article https://sigon.gitlab.io/post/2017-11-10-install-snap-ubuntu/
+
+wget https://step.esa.int/downloads/8.0/installers/esa-snap_sentinel_unix_8_0.sh
+bash esa-snap_sentinel_unix_8_0.sh
+
+# /home/ubuntu/snap-esa
+# /home/ubuntu/miniconda2/envs/esa-snap-dev/bin/python
+
+cd ~/snap-esa/bin/
+./snappy-conf /home/ubuntu/miniconda2/envs/esa-snap-dev/bin/python
+
+cd ~/.snap/snap-python/
+cp -R snappy/ /home/ubuntu/miniconda2/envs/esa-snap-dev/lib/python2.7/site-packages/
+
+
+# test installation
+from snappy import ProductIO;
+file = '/home/ubuntu/miniconda2/envs/esa-snap-dev/lib/python2.7/site-packages/snappy/testdata/MER_FRS_L1B_SUBSET.dim';
+p = ProductIO.readProduct(file);
+list(p.getBandNames());
+
+
+#########################################################################################################################################################
+#########################################################################################################################################################
+#########################################################################################################################################################
+
+
+https://forum.step.esa.int/t/linux-distribution/19630/2
+https://margaretmz.medium.com/setting-up-aws-ec2-for-running-jupyter-notebook-on-gpu-c281231fad3f
+
+sudo apt update
+
+# install OpenJDK
+sudo apt install openjdk-8-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+echo $JAVA_HOME
+
+export PATH=$PATH:$JAVA_HOME/bin
+echo $PATH
+
+java -version
+
+# install miniconda python
+wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
+sudo chmod +x Miniconda2-latest-Linux-x86_64.sh
+./Miniconda2-latest-Linux-x86_64.sh
+source ~/.bashrc
+
+
+pip install sentinelsat jupyter pandas pathlib Shapley matplotlib
+
+wget https://step.esa.int/downloads/8.0/installers/esa-snap_sentinel_unix_8_0.sh
+bash esa-snap_sentinel_unix_8_0.sh
+
+
+sudo apt install python-jpy
+
+
+cd ~/snap/bin/
+./snappy-conf /home/ubuntu/miniconda2/bin/python
+
+
+cp -r /home/ubuntu/.snap/snap-python/snappy /home/ubuntu/miniconda2/lib/python2.7/site-packages
+cd /home/ubuntu/miniconda2/lib/python2.7/site-packages/snappy
+nano snappy.ini
+
+# copy 
+[DEFAULT]
+snap_home = /home/\<user\>/snap
+java_max_mem: 21G
+# the java_max_mem value should be 70-80% of your overall RAM
+# snap_start_engine: False
+# java_class_path: ./target/classes
+# java_library_path: ./lib
+# java_options: -Djava.awt.headless=false
+# debug: False
+
+from snappy import ProductIO
+p = ProductIO.readProduct('/home/ubuntu/.snap/snap-python/snappy/testdata/MER_FRS_L1B_SUBSET.dim')
+list(p.getBandNames())
+
+
+jupyter notebook --ip=0.0.0.0 --no-browser
+
+
+# https://forum.step.esa.int/t/srtm-zip-files-are-corrupted-or-not-found/26897/46
+
+nano /home/ubuntu/snap/etc/snap.auxdata.properties
+
+change from 
+DEM.srtm3GeoTiffDEM_HTTP = http://cgiar-csi-srtm.openterrain.org.s3.amazonaws.com/source/
+to
+DEM.srtm3GeoTiffDEM_HTTP = http://skywatch-auxdata.s3-us-west-2.amazonaws.com/dem/SRTM90/tiff/
+
+
+
+#install GDAL
+
+sudo apt-get install python-dev 
+sudo add-apt-repository ppa:ubuntugis/ppa && sudo apt-get update
+sudo apt-get update
+sudo apt-get install gdal-bin
+sudo apt-get install libgdal-dev
+export CPLUS_INCLUDE_PATH=/usr/include/gdal
+export C_INCLUDE_PATH=/usr/include/gdal#
+
+# check gdak version
+gdal-config --version
+
+pip install GDAL # use the version above
+
+
+

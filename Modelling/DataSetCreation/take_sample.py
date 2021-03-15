@@ -152,11 +152,13 @@ if __name__ == "__main__":
     sentinel_1_directory = sys.argv[2]
     sentinel_2_directory = sys.argv[3]
     settlement_map_file = sys.argv[4]
+    percentage = sys.argv[5]
 
     print('The path to the building height file: '  + str(building_height_file))
-    print('The Sentinel 1 path is: '  + str(sentinel_1_directory))
-    print('The Sentinel 2 path is: ' + str(sentinel_2_directory))
-    print('The path to the Settlement map path is: ' + str(settlement_map_file))
+    print('\n The Sentinel 1 path is: '  + str(sentinel_1_directory))
+    print('\n The Sentinel 2 path is: ' + str(sentinel_2_directory))
+    print('\n The path to the Settlement map path is: ' + str(settlement_map_file))
+    print('\n Taking a ' + str(100*percentage) + '% Sample')
 
     list_arg_paths = [building_height_file, sentinel_1_directory,
                       sentinel_2_directory, settlement_map_file]
@@ -166,3 +168,12 @@ if __name__ == "__main__":
 
     if not flag:
         sys.exit()
+
+
+    height_distri = compute_height_distribtuion(building_height_file)
+    strat_sample  = stratified_height_sample(building_height_file, 
+                                            height_distri, 
+                                            percentage)
+
+
+    

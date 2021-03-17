@@ -175,11 +175,6 @@ def take_samples(directory, stratified_sample):
 
 if __name__ == "__main__":
 
-    #building_height_directory = sys.argv[1]
-    #sentinel_1_directory = sys.argv[2]
-    #sentinel_2_directory = sys.argv[3]
-    #settlement_map_dir = sys.argv[4]
-    #percentage = sys.argv[5]
 
     building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
     sentinel_1_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Desc/'
@@ -188,17 +183,10 @@ if __name__ == "__main__":
     percentage = 0.1
 
 
-    print('The path to the building height directory is: '  + str(building_height_directory))
-    print('\n The Sentinel 1 path is: '  + str(sentinel_1_directory))
-    print('\n The Sentinel 2 path is: ' + str(sentinel_2_directory))
-    print('\n The path to the Settlement map path is: ' + str(settlement_map_dir))
-    print('\n Taking a ' + str(100*percentage) + '% Sample')
-
-
     sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0003','X0003_Y0003' ]
-    sub_dirs = ['X0002_Y0002']
 
- 
+
+    list_of_dfs = []
     for sub_dir in sub_dirs:
 
 
@@ -224,7 +212,14 @@ if __name__ == "__main__":
         stratified_sample = take_samples(sentinel_1_dir, stratified_sample)
         stratified_sample = take_samples(sentinel_2_dir, stratified_sample)
 
-        print(stratified_sample.shape)
-        print(stratified_sample.head())
+        stratified_sample['tile'] = sub_dir
+        list_of_dfs.append(stratified_sample)
+
+    
+    startified_sample = pd.concat(list_of_dfs)
+    startified_sample.to_csv('building_height_sample.csv', index=False)
+
+
+
 
     

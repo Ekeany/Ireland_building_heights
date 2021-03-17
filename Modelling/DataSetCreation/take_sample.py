@@ -1,12 +1,16 @@
+from multiprocessing import Pool
 from osgeo import gdal
 import numpy as np
 import random
 import pandas as pd
 from tqdm import tqdm
+import glob
 import sys
 import re
+import os
 
-def compute_height_distribtuion(building_height_path):
+
+def compute_height_distribtuion(building_height_path, directory):
     '''
     calculates the distribution of pixel values given a 
     raster image.
@@ -15,7 +19,7 @@ def compute_height_distribtuion(building_height_path):
     and percentage it occurs
     '''
     
-    print('Getting the building height distribution for this raster....')
+    print('Getting the building height distribution for this raster: ' + str(directory) + '....')
     total_building_height = gdal.Open(building_height_path)
     height_data = total_building_height.GetRasterBand(1).ReadAsArray()
     
@@ -37,7 +41,11 @@ def compute_height_distribtuion(building_height_path):
     
 
     
-def stratified_height_sample(building_height_path, height_stratified, percentage):
+def stratified_height_sample(building_height_path,
+                            height_stratified,
+                            percentage,
+                            settle_map_path,
+                            apply_settlement_mask=False):
     '''
     given a raster it will return a stratified sample of pixel
     values given dictionary with the percentage of each pixel
@@ -50,14 +58,17 @@ def stratified_height_sample(building_height_path, height_stratified, percentage
     
     building_height = gdal.Open(building_height_path)
     building_height = building_height.GetRasterBand(1).ReadAsArray()
+
+    if apply_settlement_mask:
+        building_height = mask_building_height_with_settlement_map(building_height, settle_map_path)
     
-    numrows = len(building_height)    # 3 rows in your example
-    numcols = len(building_height[0]) # 2 columns in your example
+    numrows = len(building_height) 
+    numcols = len(building_height[0]) 
     length  = numrows*numcols
 
     n_samples = round(length*percentage)
     print('Taking a stratified sample of ' + str(100*percentage) + 
-          ' or ' + str(n_samples) + ' samples out of ' + str(length))
+          '% Or ' + str(n_samples) + ' samples out of ' + str(length))
 
     save_coords = np.empty((0, 2))
     save_height = np.empty((0, 1))
@@ -85,21 +96,36 @@ def stratified_height_sample(building_height_path, height_stratified, percentage
     return pd.DataFrame(np.column_stack((save_coords, save_height)), columns=['X','Y','Height'])
 
 
+def get_file_name(file_path):
+    file_name = os.path.basename(file_path)
+    clean_name = file_name.replace('.tif','')
+    
+    name_pieces = clean_name.split('_')
 
-def collect_data_from_image(gdal_obj, stratified_sampler):
+    if name_pieces[-1] == 'STM':
+        return name_pieces[-2]
+
+    elif name_pieces[-2] == 'TXT':
+        return name_pieces[-1]
+
+    else:
+        return clean_name
+
+
+def collect_data_sample_from_file(file_path, stratified_sampler, feature_name=False):
     
     '''
     given a gdal object and the stratified sample dataframe
     this funciton will get these samples from every band in gdal obj
     and store them in a dataframe
     '''
-    
+    gdal_obj = gdal.Open(file_path)
     num_bands = gdal_obj.RasterCount
     
     X_coords = stratified_sampler['X']
     Y_coords = stratified_sampler['Y']
-    
-    data_store = pd.DataFrame([])
+
+    file_name = get_file_name(file_path)
     for band in range(1, num_bands):
         
         raster_band = gdal_obj.GetRasterBand(band)
@@ -108,72 +134,97 @@ def collect_data_from_image(gdal_obj, stratified_sampler):
         
         
         values = raster_array[X_coords, Y_coords]
-        data_store[col_name] = values
-        
-    return data_store
+        stratified_sampler[col_name+'_'+file_name] = values
+    
+    del gdal_obj
 
-
-def mask_building_height_with_settlement_map():
-    pass
-
-
-def loop_trhough_directory():
-    pass
-
-
-def check_if_all_paths_are_from_the_same_chip(list_arg_paths):
-
-
-    def extract_tile(path_string):
-
-        '''
-        extract the corresponding tile from the image or directory path
-        '''
-        result = re.search('/X(.*)/', path_string)
-        return result.group(1)
 
     
-    tiles = []
-    for path in list_arg_paths:
-        tile = extract_tile(path)
-        tiles.append(tile)
+    return stratified_sampler
 
-    if len(set(tiles)) != 1:
-        print('One of the tiles does not match !!!  ' + str(tiles))
-        return False
 
-    else:
-        return True
+
+def mask_building_height_with_settlement_map(height_raster,
+                                            settle_map_path='C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/X0002_Y0003/settlement_map.tif'):
+    
+    settlement = gdal.Open(settle_map_path)
+
+    settlement_data = settlement.GetRasterBand(1).ReadAsArray()
+    masked_height_data = np.where(settlement_data>2, height_raster, 0)
+
+    return masked_height_data
+
+
+
+
+def take_samples(directory, stratified_sample):
+    
+
+    for file_ in tqdm(os.listdir(directory)):
+
+        if file_.endswith(".tif"):
+            file_path = os.path.join(directory,file_)
+            stratified_sample = collect_data_sample_from_file(file_path, stratified_sample)
+
+
+    return stratified_sample
+
+
+
 
 
 if __name__ == "__main__":
 
-    building_height_file = sys.argv[1]
-    sentinel_1_directory = sys.argv[2]
-    sentinel_2_directory = sys.argv[3]
-    settlement_map_file = sys.argv[4]
-    percentage = sys.argv[5]
+    #building_height_directory = sys.argv[1]
+    #sentinel_1_directory = sys.argv[2]
+    #sentinel_2_directory = sys.argv[3]
+    #settlement_map_dir = sys.argv[4]
+    #percentage = sys.argv[5]
 
-    print('The path to the building height file: '  + str(building_height_file))
+    building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
+    sentinel_1_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Desc/'
+    sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/morphology/'
+    settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
+    percentage = 0.1
+
+
+    print('The path to the building height directory is: '  + str(building_height_directory))
     print('\n The Sentinel 1 path is: '  + str(sentinel_1_directory))
     print('\n The Sentinel 2 path is: ' + str(sentinel_2_directory))
-    print('\n The path to the Settlement map path is: ' + str(settlement_map_file))
+    print('\n The path to the Settlement map path is: ' + str(settlement_map_dir))
     print('\n Taking a ' + str(100*percentage) + '% Sample')
 
-    list_arg_paths = [building_height_file, sentinel_1_directory,
-                      sentinel_2_directory, settlement_map_file]
+
+    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0003','X0003_Y0003' ]
+    sub_dirs = ['X0002_Y0002']
+
+ 
+    for sub_dir in sub_dirs:
 
 
-    flag = check_if_all_paths_are_from_the_same_chip(list_arg_paths)
+        building_height_dir = building_height_directory + sub_dir
+        sentinel_1_dir  = sentinel_1_directory + sub_dir
+        sentinel_2_dir  = sentinel_2_directory + sub_dir
+        settle_map_dir  = settlement_map_dir + sub_dir
 
-    if not flag:
-        sys.exit()
+        building_height = glob.glob(building_height_dir+"/*.tif")[0].replace('\\','/')
+        settlement_map  = glob.glob(settle_map_dir+"/*.tif")[0].replace('\\','/')
 
 
-    height_distri = compute_height_distribtuion(building_height_file)
-    strat_sample  = stratified_height_sample(building_height_file, 
-                                            height_distri, 
-                                            percentage)
 
+        height_distribution = compute_height_distribtuion(building_height, sub_dir)
+        stratified_sample  = stratified_height_sample(building_height, 
+                                                    height_distribution, 
+                                                    percentage,
+                                                    settlement_map,
+                                                    apply_settlement_mask=False)
+
+
+
+        stratified_sample = take_samples(sentinel_1_dir, stratified_sample)
+        stratified_sample = take_samples(sentinel_2_dir, stratified_sample)
+
+        print(stratified_sample.shape)
+        print(stratified_sample.head())
 
     

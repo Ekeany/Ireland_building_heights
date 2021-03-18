@@ -29,7 +29,7 @@ def compute_height_distribtuion(building_height_path, directory):
     
     total_num_pixels = len(flat_height)
     height_dist = {}
-    for height in tqdm(np.unique(flat_height)):
+    for height in np.unique(flat_height):
         
         num_pixels = sum(flat_height == height)
         height_dist[height] = round(num_pixels/total_num_pixels,3)
@@ -41,11 +41,8 @@ def compute_height_distribtuion(building_height_path, directory):
     
 
     
-def stratified_height_sample(building_height_path,
-                            height_stratified,
-                            percentage,
-                            settle_map_path,
-                            apply_settlement_mask=False):
+def stratified_height_sample(building_height_path,height_stratified,percentage,
+                            settle_map_path, apply_settlement_mask=False):
     '''
     given a raster it will return a stratified sample of pixel
     values given dictionary with the percentage of each pixel
@@ -62,9 +59,12 @@ def stratified_height_sample(building_height_path,
     if apply_settlement_mask:
         building_height = mask_building_height_with_settlement_map(building_height, settle_map_path)
     
-    numrows = len(building_height) 
-    numcols = len(building_height[0]) 
-    length  = numrows*numcols
+    
+    flat_height = height_data.flatten()
+    # remove all 0s and no data values
+    flat_height = flat_height[flat_height > 0]  
+    length  = nlen(flat_height)
+    
 
     n_samples = round(length*percentage)
     print('Taking a stratified sample of ' + str(100*percentage) + 
@@ -72,7 +72,7 @@ def stratified_height_sample(building_height_path,
 
     save_coords = np.empty((0, 2))
     save_height = np.empty((0, 1))
-    for height, value in tqdm(height_stratified.items()):
+    for height, value in height_stratified.items():
         
         X, Y = np.where(building_height == height)
         coords = np.column_stack((X, Y))
@@ -144,8 +144,7 @@ def collect_data_sample_from_file(file_path, stratified_sampler, feature_name=Fa
 
 
 
-def mask_building_height_with_settlement_map(height_raster,
-                                            settle_map_path='C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/X0002_Y0003/settlement_map.tif'):
+def mask_building_height_with_settlement_map(height_raster, settle_map_path):
     
     settlement = gdal.Open(settle_map_path)
 
@@ -158,9 +157,12 @@ def mask_building_height_with_settlement_map(height_raster,
 
 
 def take_samples(directory, stratified_sample):
-    
+    '''
+    loops through all .tif files in a directory
+    and applies the collect data sample function
+    '''
 
-    for file_ in tqdm(os.listdir(directory)):
+    for file_ in os.listdir(directory):
 
         if file_.endswith(".tif"):
             file_path = os.path.join(directory,file_)
@@ -168,8 +170,6 @@ def take_samples(directory, stratified_sample):
 
 
     return stratified_sample
-
-
 
 
 
@@ -183,11 +183,11 @@ if __name__ == "__main__":
     percentage = 0.1
 
 
-    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0003','X0003_Y0003' ]
+    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002','X0003_Y0003' ]
 
 
     list_of_dfs = []
-    for sub_dir in sub_dirs:
+    for sub_dir in tqdm(sub_dirs):
 
 
         building_height_dir = building_height_directory + sub_dir
@@ -195,6 +195,7 @@ if __name__ == "__main__":
         sentinel_2_dir  = sentinel_2_directory + sub_dir
         settle_map_dir  = settlement_map_dir + sub_dir
 
+        #  get single tif file in each tiles dircectory
         building_height = glob.glob(building_height_dir+"/*.tif")[0].replace('\\','/')
         settlement_map  = glob.glob(settle_map_dir+"/*.tif")[0].replace('\\','/')
 

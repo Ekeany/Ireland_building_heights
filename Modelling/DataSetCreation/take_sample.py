@@ -60,11 +60,11 @@ def stratified_height_sample(building_height_path,height_stratified,percentage,
         building_height = mask_building_height_with_settlement_map(building_height, settle_map_path)
     
     
-    flat_height = height_data.flatten()
+    flat_height = building_height.flatten()
     # remove all 0s and no data values
     flat_height = flat_height[flat_height > 0]  
-    length  = nlen(flat_height)
-    
+    length  = len(flat_height)
+
 
     n_samples = round(length*percentage)
     print('Taking a stratified sample of ' + str(100*percentage) + 

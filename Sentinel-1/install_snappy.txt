@@ -76,7 +76,7 @@ sudo chmod +x Miniconda2-latest-Linux-x86_64.sh
 source ~/.bashrc
 
 
-pip install sentinelsat jupyter pandas pathlib Shapley matplotlib
+pip install sentinelsat==0.14 jupyter==1.0.0 pandas==0.24.2 pathlib== 1.0.1 matplotlib== 2.2.5 Shapley==1.7.1
 
 wget https://step.esa.int/downloads/8.0/installers/esa-snap_sentinel_unix_8_0.sh
 bash esa-snap_sentinel_unix_8_0.sh

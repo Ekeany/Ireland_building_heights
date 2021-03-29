@@ -82,9 +82,8 @@ if __name__ == "__main__":
     output_path = sys.argv[2]
     externel_dem = sys.argv[3]
 
-    print('The input path is: '   + str(input_path))
-    print('The output path is: '  + str(output_path))
-    print('The externel dem is: ' + str(externel_dem))
+    print('The input path is: '  + str(input_path))
+    print('The output path is: ' + str(output_path))
 
     files = check_if_files_have_been_processed(input_path, output_path)
 

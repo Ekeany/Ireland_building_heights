@@ -112,7 +112,7 @@ def get_file_name(file_path):
         return clean_name
 
 
-def collect_data_sample_from_file(file_path, stratified_sampler, feature_name=False):
+def collect_data_sample_from_file(file_path, stratified_sampler, add_to_name):
     
     '''
     given a gdal object and the stratified sample dataframe
@@ -134,7 +134,10 @@ def collect_data_sample_from_file(file_path, stratified_sampler, feature_name=Fa
         
         
         values = raster_array[X_coords, Y_coords]
-        stratified_sampler[col_name+'_'+file_name] = values
+        if not add_to_name:
+            stratified_sampler[col_name + add_to_name + '_' + file_name] = values
+        else:
+            stratified_sampler[col_name+'_'+file_name] = values
     
     del gdal_obj
 
@@ -156,7 +159,7 @@ def mask_building_height_with_settlement_map(height_raster, settle_map_path):
 
 
 
-def take_samples(directory, stratified_sample):
+def take_samples(directory, stratified_sample, add_to_name=''):
     '''
     loops through all .tif files in a directory
     and applies the collect data sample function
@@ -166,7 +169,7 @@ def take_samples(directory, stratified_sample):
 
         if file_.endswith(".tif"):
             file_path = os.path.join(directory,file_)
-            stratified_sample = collect_data_sample_from_file(file_path, stratified_sample)
+            stratified_sample = collect_data_sample_from_file(file_path, stratified_sample, add_to_name)
 
 
     return stratified_sample
@@ -177,7 +180,8 @@ if __name__ == "__main__":
 
 
     building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
-    sentinel_1_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Desc/'
+    sentinel_1_directory_desc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Desc/'
+    sentinel_1_directory_asc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Asc/'
     sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/morphology/'
     settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
     percentage = 0.1
@@ -189,9 +193,10 @@ if __name__ == "__main__":
     list_of_dfs = []
     for sub_dir in tqdm(sub_dirs):
 
-
+        print('\n')
         building_height_dir = building_height_directory + sub_dir
-        sentinel_1_dir  = sentinel_1_directory + sub_dir
+        sentinel_1_desc_dir  = sentinel_1_directory_desc + sub_dir
+        sentinel_1_asc_dir  = sentinel_1_directory_asc + sub_dir
         sentinel_2_dir  = sentinel_2_directory + sub_dir
         settle_map_dir  = settlement_map_dir + sub_dir
 
@@ -210,7 +215,8 @@ if __name__ == "__main__":
 
 
 
-        stratified_sample = take_samples(sentinel_1_dir, stratified_sample)
+        stratified_sample = take_samples(sentinel_1_asc_dir, stratified_sample, 'asc')
+        stratified_sample = take_samples(sentinel_1_desc_dir, stratified_sample, 'desc')
         stratified_sample = take_samples(sentinel_2_dir, stratified_sample)
 
         stratified_sample['tile'] = sub_dir

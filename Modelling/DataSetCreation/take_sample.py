@@ -135,9 +135,9 @@ def collect_data_sample_from_file(file_path, stratified_sampler, add_to_name):
         
         values = raster_array[X_coords, Y_coords]
         if not add_to_name:
-            stratified_sampler[col_name + add_to_name + '_' + file_name] = values
-        else:
             stratified_sampler[col_name+'_'+file_name] = values
+        else:
+            stratified_sampler[col_name + '_' + file_name + '_' + add_to_name] = values
     
     del gdal_obj
 
@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     
     startified_sample = pd.concat(list_of_dfs)
-    startified_sample.to_csv('building_height_sample.csv', index=False)
+    startified_sample.to_csv('building_height_sample_asc.csv', index=False)
 
 
 

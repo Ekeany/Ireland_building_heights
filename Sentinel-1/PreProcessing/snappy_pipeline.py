@@ -239,7 +239,6 @@ if __name__ == "__main__":
     externel_dem = sys.argv[3]
 
     s1 = read_product(file_path)
-    s1 = create_subset(s1)
 
     s1 = apply_orbit_file(s1)
     s1 = do_thermal_noise_removal(s1)
@@ -255,5 +254,6 @@ if __name__ == "__main__":
     s1 = convert_dB(s1)
 
     s1 = do_band_maths(s1, scale=1000, bands=['Sigma0_VH_db','Sigma0_VV_db'])
+    s1 = create_subset(s1)
     output_name = do_save_product(s1, output_dir=output_path ,file_type='GeoTIFF')
     print(output_name)

@@ -126,7 +126,7 @@ def collect_data_sample_from_file(file_path, stratified_sampler, add_to_name):
     Y_coords = stratified_sampler['Y']
 
     file_name = get_file_name(file_path)
-    for band in range(1, num_bands):
+    for band in range(1, num_bands+1):
         
         raster_band = gdal_obj.GetRasterBand(band)
         col_name = raster_band.GetDescription()
@@ -141,10 +141,7 @@ def collect_data_sample_from_file(file_path, stratified_sampler, add_to_name):
     
     del gdal_obj
 
-
-    
     return stratified_sampler
-
 
 
 def mask_building_height_with_settlement_map(height_raster, settle_map_path):

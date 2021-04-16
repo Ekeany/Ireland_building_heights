@@ -97,6 +97,38 @@ def save_numpy_out(filename, array):
     with open(filename, 'wb') as f:
         np.save(f, array)
 
+
+
+def split_image_from_csv_coords(csv_filepath, img, tile_id, output_dir):
+    '''
+    using the csv of tile coordinates created from create_csv_with_tiles_and_split_points()
+    split the X features or images sentinel-1 and 2 so that they align with the target variable
+    or building heights.s
+    '''
+    
+    if not check_if_csv_file_exists(csv_filepath): raise ValueError('The file does not exist !')
+    
+    # create directory if it doesn't exist
+    create_directory_to_save_to(output_dir)
+    
+    coords = pd.read_csv(csv_filepath)
+    
+    
+    for index, row in coords.iterrows():
+        
+        if img.ndim > 2:
+            split_img = img[row['X1']:row['X2'], row['Y1']:row['Y2'], :]
+            
+        else:
+            split_img = img[row['X1']:row['X2'], row['Y1']:row['Y2']]
+            
+            
+        filename = f'X_{row['Tile_id']}_{row['X1']}_{row['X2']}_{row['Y1']}_{row['Y2']}'
+        save_numpy_out(filename, split_img)
+        
+        
+    print(f'Succesfully subseted X variables using csv coords, saved output to {output_dir}')
+
         
         
 def create_csv_with_tiles_and_split_points(image_raster, split_width, 
@@ -192,10 +224,6 @@ if __name__ == "__main__":
     for sub_dir in sub_dirs:
 
         building_height_dir = building_height_directory + sub_dir
-        sentinel_1_desc_dir  = sentinel_1_directory_desc + sub_dir
-        sentinel_1_asc_dir  = sentinel_1_directory_asc + sub_dir
-        sentinel_2_dir  = sentinel_2_directory + sub_dir
-        settle_map_dir  = settlement_map_dir + sub_dir
 
         # read in building height file and get raster
         building_height = glob.glob(building_height_dir+"/*.tif")[0].replace('\\','/')
@@ -208,4 +236,10 @@ if __name__ == "__main__":
 
 
 
-    
+    for sub_dir in sub_dirs:
+        
+        sentinel_2_dir  = sentinel_2_directory + sub_dir
+
+        img = extract_bands_and_merge(sentinel_2_dir, bands=['BLU','GRN','RED'])
+
+        

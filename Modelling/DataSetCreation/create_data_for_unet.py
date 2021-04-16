@@ -115,19 +115,26 @@ def split_image_from_csv_coords(csv_filepath, img, tile_id, output_dir):
     
     
     for index, row in coords.iterrows():
+
+        X1 = row['X1']
+        X2 = row['X2']
+        Y1 = row['Y1']
+        Y2 = row['Y2']
+        tile_id = row['Tile_id']
         
         if img.ndim > 2:
-            split_img = img[row['X1']:row['X2'], row['Y1']:row['Y2'], :]
+            split_img = img[X1:X2, Y1:Y2, :]
             
         else:
-            split_img = img[row['X1']:row['X2'], row['Y1']:row['Y2']]
+            split_img = img[X1:X2, Y1:Y2]
             
             
-        filename = f'X_{row['Tile_id']}_{row['X1']}_{row['X2']}_{row['Y1']}_{row['Y2']}'
-        save_numpy_out(filename, split_img)
+        filename = f'X_{tile_id}_{X1}_{X2}_{Y1}_{Y2}'
+        filepath = os.path.join(output_dir, filename)
+        save_numpy_out(filepath, split_img)
         
         
-    print(f'Succesfully subseted X variables using csv coords, saved output to {output_dir}')
+    print(f'Succesfully subseted X feature tile {tile_id} variables using csv coords, saved output to {output_dir}')
 
         
         
@@ -183,7 +190,7 @@ def create_csv_with_tiles_and_split_points(image_raster, split_width,
                 if segmented_tiles_dir is not None:
                     # if a directory is passed then save the data out.
                     new_filename = f'Y_{tile_id}_{X1}_{X2}_{Y1}_{Y2}.npy'
-                    new_filepath = os.path.join(segmented_tiles_dir_building, new_filename)
+                    new_filepath = os.path.join(segmented_tiles_dir, new_filename)
                     save_numpy_out(new_filepath, split_img)
                     
                     #output_view_gdal_height(split, vmin=0, MAX_HEIGHT=10)
@@ -216,7 +223,8 @@ if __name__ == "__main__":
     settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
 
     csv_output_path = os.path.join(os.getcwd(), 'Unet-Data', 'building_height_coords.csv')
-    segmented_tiles_dir_building = os.path.join(os.getcwd(), 'Unet-Data', 'Y')
+    segmented_tiles_dir_Y = os.path.join(os.getcwd(), 'Unet-Data', 'Y')
+    segmented_tiles_dir_X = os.path.join(os.getcwd(), 'Unet-Data', 'X')
 
     sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002','X0003_Y0003']
 
@@ -232,7 +240,7 @@ if __name__ == "__main__":
 
         create_csv_with_tiles_and_split_points(height_data, 250, 250, 0,
                                                 sub_dir, csv_output_path, 
-                                                segmented_tiles_dir=segmented_tiles_dir_building)
+                                                segmented_tiles_dir=segmented_tiles_dir_Y)
 
 
 
@@ -241,5 +249,7 @@ if __name__ == "__main__":
         sentinel_2_dir  = sentinel_2_directory + sub_dir
 
         img = extract_bands_and_merge(sentinel_2_dir, bands=['BLU','GRN','RED'])
+
+        split_image_from_csv_coords(csv_output_path, img, sub_dir, segmented_tiles_dir_X)
 
         

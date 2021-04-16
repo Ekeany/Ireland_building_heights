@@ -36,6 +36,26 @@ def create_directory_to_save_to(output_dir):
 
 
 
+def extract_bands_and_merge(directory, bands=['BLU','GRN','RED']):
+    '''
+    given a list of band names extract the relevant tif files from the directory 
+    and stack them into a mutli channel image.
+    '''
+    
+    img_bands = []
+    for file in glob.glob(directory + "/*.tif"):
+        
+        if any(band in file for band in bands):
+            
+            filepath = file.replace('\\','/')
+            file_ = gdal.Open(filepath)
+            file_as_array = file_.GetRasterBand(1).ReadAsArray()
+            img_bands.append(file_as_array)
+            
+    return stack_images_into_volume(img_bands)
+
+
+
 def start_points(size, chunk_size, overlap=0):
     '''
     split an array into equal parts including overlap. used
@@ -185,3 +205,7 @@ if __name__ == "__main__":
         create_csv_with_tiles_and_split_points(height_data, 250, 250, 0,
                                                 sub_dir, csv_output_path, 
                                                 segmented_tiles_dir=segmented_tiles_dir_building)
+
+
+
+    

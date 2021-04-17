@@ -111,8 +111,9 @@ def split_image_from_csv_coords(csv_filepath, img, tile_id, output_dir):
     # create directory if it doesn't exist
     create_directory_to_save_to(output_dir)
     
+    # filter to the appropriate tile
     coords = pd.read_csv(csv_filepath)
-    
+    coords = coords[coords['Tile_id'] == tile_id]
     
     for index, row in coords.iterrows():
 

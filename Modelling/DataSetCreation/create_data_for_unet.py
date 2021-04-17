@@ -129,7 +129,7 @@ def split_image_from_csv_coords(csv_filepath, img, tile_id, output_dir):
             split_img = img[X1:X2, Y1:Y2]
             
             
-        filename = f'X_{tile_id}_{X1}_{X2}_{Y1}_{Y2}'
+        filename = f'X_{tile_id}_{X1}_{X2}_{Y1}_{Y2}.npy'
         filepath = os.path.join(output_dir, filename)
         save_numpy_out(filepath, split_img)
         

@@ -192,9 +192,10 @@ def create_csv_with_tiles_and_split_points(image_raster, split_width,
                     # if a directory is passed then save the data out.
                     new_filename = f'Y_{tile_id}_{X1}_{X2}_{Y1}_{Y2}.npy'
                     new_filepath = os.path.join(segmented_tiles_dir, new_filename)
+                    # expand dimension to include channel info from (250,250) -> (250,250,1)
+                    split_img = np.expand_dims(split_img, axis=2)
                     save_numpy_out(new_filepath, split_img)
                     
-                    #output_view_gdal_height(split, vmin=0, MAX_HEIGHT=10)
        
     
     new_data = pd.DataFrame(rows, columns=['Tile_id','X1','X2','Y1','Y2'])
@@ -227,8 +228,8 @@ if __name__ == "__main__":
     segmented_tiles_dir_Y = os.path.join(os.getcwd(), 'Unet-Data', 'Y')
     segmented_tiles_dir_X = os.path.join(os.getcwd(), 'Unet-Data', 'X')
 
-    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002','X0003_Y0003']
-
+    # saving 'X0003_Y0003' for testing.
+    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002']
 
     for sub_dir in sub_dirs:
 
@@ -239,7 +240,7 @@ if __name__ == "__main__":
         build_height = gdal.Open(building_height)
         height_data = build_height.GetRasterBand(1).ReadAsArray()
 
-        create_csv_with_tiles_and_split_points(height_data, 250, 250, 0,
+        create_csv_with_tiles_and_split_points(height_data, 250, 250, 0.5,
                                                 sub_dir, csv_output_path, 
                                                 segmented_tiles_dir=segmented_tiles_dir_Y)
 

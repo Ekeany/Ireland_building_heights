@@ -56,6 +56,9 @@ def extract_bands_and_merge(sentinel2_dir, settlement_map_dir, bands=['BLU','GRN
     settlement_file = settlement_map_dir + '/settlement_map.tif'
     file_ = gdal.Open(settlement_file)
     settlement_as_array = file_.GetRasterBand(1).ReadAsArray()
+
+    # make binary 
+    settlement_as_array = np.where(settlement_as_array>2, 1, 0)
     img_bands.append(settlement_as_array)
 
     return stack_images_into_volume(img_bands)

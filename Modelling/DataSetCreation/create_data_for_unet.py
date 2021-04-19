@@ -214,9 +214,7 @@ def create_csv_with_tiles_and_split_points(image_raster, split_width,
 
 
 
-
-if __name__ == "__main__":
-
+def create_data(training=True):
 
     building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
     sentinel_1_directory_desc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Interpolation/Desc/'
@@ -224,12 +222,22 @@ if __name__ == "__main__":
     sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/interpolation/'
     settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
 
-    csv_output_path = os.path.join(os.getcwd(), 'Unet-Data', 'building_height_coords.csv')
-    segmented_tiles_dir_Y = os.path.join(os.getcwd(), 'Unet-Data', 'Y')
-    segmented_tiles_dir_X = os.path.join(os.getcwd(), 'Unet-Data', 'X')
+    if training:
+        csv_output_path = os.path.join(os.getcwd(), 'Unet-Data', 'building_height_training_coords.csv')
+        segmented_tiles_dir_Y = os.path.join(os.getcwd(), 'Unet-Data', 'Y_train')
+        segmented_tiles_dir_X = os.path.join(os.getcwd(), 'Unet-Data', 'X_train')
 
-    # saving 'X0003_Y0003' for testing.
-    sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002']
+        # saving 'X0003_Y0003' for testing.
+        sub_dirs = ['X0002_Y0002','X0002_Y0003','X0003_Y0002']
+
+    else:
+        csv_output_path = os.path.join(os.getcwd(), 'Unet-Data', 'building_height_testing_coords.csv')
+        segmented_tiles_dir_Y = os.path.join(os.getcwd(), 'Unet-Data', 'Y_test')
+        segmented_tiles_dir_X = os.path.join(os.getcwd(), 'Unet-Data', 'X_test')
+
+        # saving 'X0003_Y0003' for testing.
+        sub_dirs = ['X0003_Y0003']
+
 
     for sub_dir in sub_dirs:
 
@@ -240,9 +248,15 @@ if __name__ == "__main__":
         build_height = gdal.Open(building_height)
         height_data = build_height.GetRasterBand(1).ReadAsArray()
 
-        create_csv_with_tiles_and_split_points(height_data, 250, 250, 0.5,
-                                                sub_dir, csv_output_path, 
-                                                segmented_tiles_dir=segmented_tiles_dir_Y)
+        if training:
+            create_csv_with_tiles_and_split_points(height_data, 250, 250, 0.5,
+                                                    sub_dir, csv_output_path, 
+                                                    segmented_tiles_dir=segmented_tiles_dir_Y)
+
+        else:
+            create_csv_with_tiles_and_split_points(height_data, 250, 250, 0,
+                                                    sub_dir, csv_output_path, 
+                                                    segmented_tiles_dir=segmented_tiles_dir_Y)
 
 
 
@@ -254,4 +268,13 @@ if __name__ == "__main__":
 
         split_image_from_csv_coords(csv_output_path, img, sub_dir, segmented_tiles_dir_X)
 
-        
+
+
+
+if __name__ == "__main__":
+
+    print('Creating Training Dataset')
+    create_data(training=True)
+
+    print('creating Testing Dataset')
+    create_data(training=False)

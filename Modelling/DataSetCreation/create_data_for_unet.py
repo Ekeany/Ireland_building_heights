@@ -36,22 +36,28 @@ def create_directory_to_save_to(output_dir):
 
 
 
-def extract_bands_and_merge(directory, bands=['BLU','GRN','RED']):
+def extract_bands_and_merge(sentinel2_dir, settlement_map_dir, bands=['BLU','GRN','RED']):
     '''
     given a list of band names extract the relevant tif files from the directory 
     and stack them into a mutli channel image.
     '''
     
     img_bands = []
-    for file in glob.glob(directory + "/*.tif"):
+    for tif in glob.glob(sentinel2_dir + "/*.tif"):
         
-        if any(band in file for band in bands):
+        if any(band in tif for band in bands):
             
-            filepath = file.replace('\\','/')
+            filepath = tif.replace('\\','/')
             file_ = gdal.Open(filepath)
             file_as_array = file_.GetRasterBand(1).ReadAsArray()
             img_bands.append(file_as_array)
-            
+
+
+    settlement_file = settlement_map_dir + '/settlement_map.tif'
+    file_ = gdal.Open(settlement_file)
+    settlement_as_array = file_.GetRasterBand(1).ReadAsArray()
+    img_bands.append(settlement_as_array)
+
     return stack_images_into_volume(img_bands)
 
 
@@ -220,7 +226,7 @@ def create_data(training=True):
     sentinel_1_directory_desc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Interpolation/Desc/'
     sentinel_1_directory_asc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Interpolation/Asc/'
     sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/interpolation/'
-    settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
+    settlement_map_directory = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
 
     if training:
         csv_output_path = os.path.join(os.getcwd(), 'Unet-Data', 'building_height_training_coords.csv')
@@ -263,8 +269,12 @@ def create_data(training=True):
     for sub_dir in sub_dirs:
         
         sentinel_2_dir  = sentinel_2_directory + sub_dir
+        settlement_map_dir = settlement_map_directory + sub_dir
 
-        img = extract_bands_and_merge(sentinel_2_dir, bands=['BLU','GRN','RED'])
+        img = extract_bands_and_merge(sentinel_2_dir, settlement_map_dir, bands=['BLU','GRN','RED','BNR','NDB',
+                                                                                'NDV','NDW','NIR','RE1','RE2',
+                                                                                'RE3','SW1','SW2','TCB','TCG',
+                                                                                'TCW'])
 
         split_image_from_csv_coords(csv_output_path, img, sub_dir, segmented_tiles_dir_X)
 

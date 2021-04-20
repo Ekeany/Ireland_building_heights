@@ -36,7 +36,7 @@ def create_directory_to_save_to(output_dir):
 
 
 
-def extract_bands_and_merge(sentinel2_dir, settlement_map_dir, bands=['BLU','GRN','RED']):
+def extract_bands_and_merge(sentinel2_dir, settlement_map, bands=['BLU','GRN','RED']):
     '''
     given a list of band names extract the relevant tif files from the directory 
     and stack them into a mutli channel image.
@@ -49,17 +49,14 @@ def extract_bands_and_merge(sentinel2_dir, settlement_map_dir, bands=['BLU','GRN
             
             filepath = tif.replace('\\','/')
             file_ = gdal.Open(filepath)
-            file_as_array = file_.GetRasterBand(1).ReadAsArray()
+            # 7 is AVG
+            file_as_array = file_.GetRasterBand(7).ReadAsArray()
             img_bands.append(file_as_array)
 
 
-    settlement_file = settlement_map_dir + '/settlement_map.tif'
-    file_ = gdal.Open(settlement_file)
-    settlement_as_array = file_.GetRasterBand(1).ReadAsArray()
-
     # make binary 
-    settlement_as_array = np.where(settlement_as_array>2, 1, 0)
-    img_bands.append(settlement_as_array)
+    settlement_map = np.where(settlement_map>2, 1, 0)
+    img_bands.append(settlement_map)
 
     return stack_images_into_volume(img_bands)
 
@@ -105,6 +102,32 @@ def save_numpy_out(filename, array):
     '''
     with open(filename, 'wb') as f:
         np.save(f, array)
+
+
+
+def mask_building_heights_and_settlement_map(building_height_dir, settlement_map_dir):
+    
+    '''
+    align the settlemnt map and building height maps identically for training purposes.
+    As the building height map will be used in future.
+
+    actually just use a binary version of building heights map not to confuse
+    '''
+
+    for tif in glob.glob(building_height_dir + "/*.tif"):
+        building_height_file = gdal.Open(tif)
+        building_height_data = building_height_file.GetRasterBand(1).ReadAsArray()
+
+    #for tif in glob.glob(settlement_map_dir + "/*.tif"):
+    #    settlement_file = gdal.Open(tif)
+    #    settlement_data = settlement_file.GetRasterBand(1).ReadAsArray()
+
+    #settlement_data = np.where(building_height_data > 0, settlement_data, 0)
+    #settlement_data = np.where((building_height_data > 0) & (settlement_data < 2), 255, 0)
+
+    settlement_data = np.where(building_height_data > 0, 1, 0)
+
+    return settlement_data
 
 
 
@@ -248,9 +271,11 @@ def create_data(training=True):
         sub_dirs = ['X0003_Y0003']
 
 
+    settlement_mask = {}
     for sub_dir in sub_dirs:
 
         building_height_dir = building_height_directory + sub_dir
+        settlement_map_dir = settlement_map_directory + sub_dir
 
         # read in building height file and get raster
         building_height = glob.glob(building_height_dir+"/*.tif")[0].replace('\\','/')
@@ -268,13 +293,17 @@ def create_data(training=True):
                                                     segmented_tiles_dir=segmented_tiles_dir_Y)
 
 
+        settlement_mask[sub_dir] = mask_building_heights_and_settlement_map(building_height_dir,
+                                                                            settlement_map_dir)
+
+
 
     for sub_dir in sub_dirs:
         
-        sentinel_2_dir  = sentinel_2_directory + sub_dir
-        settlement_map_dir = settlement_map_directory + sub_dir
 
-        img = extract_bands_and_merge(sentinel_2_dir, settlement_map_dir, bands=['BLU','GRN','RED','BNR','NDB',
+        sentinel_2_dir  = sentinel_2_directory + sub_dir
+
+        img = extract_bands_and_merge(sentinel_2_dir, settlement_mask[sub_dir], bands=['BLU','GRN','RED','BNR','NDB',
                                                                                 'NDV','NDW','NIR','RE1','RE2',
                                                                                 'RE3','SW1','SW2','TCB','TCG',
                                                                                 'TCW'])

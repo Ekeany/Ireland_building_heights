@@ -80,9 +80,20 @@ def stratified_height_sample(building_height_path,height_stratified,percentage,
         take = len(coords)
         # take all buildings over 20 meteres
         if height <= 20:
+            
+            '''
+            # poor performance on the lower heights
+            if height < 5:
+                take = round(2*value*n_samples)
+            else:
+                take = round(value*n_samples)
+            '''
+
             take = round(value*n_samples)
             idx_to_take = np.random.randint(len(coords), size=take)
             coords = coords[idx_to_take,:]
+
+
         
         
         save_coords = np.concatenate((save_coords, coords), axis=0)
@@ -376,6 +387,114 @@ def extract_bands_and_merge(sentinel_1_asc_dir, sentinel_2_dir, important_featur
     return stack_images_into_volume(img)
 
 
+
+def get_all_points_within_100m(point):
+    '''
+    get all the points within 100m or 10 pixels
+    to the left and right or above and below a point
+    
+    get_all_points_within_100m(0) ->  
+    
+    np.array([-10,  -9,  -8,  -7,  -6,  
+    -5,  -4,  -3,  -2,  -1,   0,   1,   2,
+    3,   4,   5,   6,   7,   8,   9,  10])
+    '''
+    points_to_right = np.arange(point,10+point+1)
+    points_to_left = np.arange(1*(point-10),point)
+    return np.concatenate([points_to_left, points_to_right])
+
+
+def filter_array(array, above, below):
+    '''
+    just filter array between two values
+    used to limit coordinates outside of the image
+    '''
+    return array[(array < below) & (array > above)]
+
+
+def check_if_any_buildings_around(coords, img):
+    '''
+    check if there are any buildings within a 100m radius of a point
+    returns true if buildings exist otherwise false
+    '''
+    X = coords[0]
+    Y = coords[1]
+    
+    x_points = get_all_points_within_100m(X)
+    y_points = get_all_points_within_100m(Y)
+    
+    width, height = img.shape
+    x_points = filter_array(x_points, 0, width)
+    y_points = filter_array(y_points, 0, height)
+
+    point_heights = []
+    for x_point in x_points:
+        for y_point in y_points:
+            point_height = img[x_point, y_point]
+            point_heights.append(point_height)
+
+    if sum(point_heights) != 0:
+        return True
+
+    else:
+        return False
+
+
+
+def add_some_zero_building_height_samples(building_height_path, percentage, zero_height_percent=0.1):
+    '''
+    takes a sample of zero height positions from the image
+    '''
+    
+    building_height = gdal.Open(building_height_path)
+    building_height = building_height.GetRasterBand(1).ReadAsArray()
+    
+    
+    flat_height = building_height.flatten()
+    # remove all 0s and no data values
+    length  = len(flat_height[flat_height > 0])
+
+
+    n_samples = round(length*percentage)
+    
+    save_coords = np.empty((0, 2))
+    
+    X, Y = np.where(building_height == 0)
+    coords = np.column_stack((X, Y))
+
+    take = round(zero_height_percent*n_samples)
+    save_coords = np.empty((0, 2))
+    counter = 0
+    while(take > 0):
+
+        idx_to_take = np.random.randint(len(coords), size=take)
+        coords = coords[idx_to_take,:]
+
+        building_check = np.apply_along_axis(func1d=check_if_any_buildings_around, axis=1, arr=coords, img=building_height)
+        coords_no_buildings = coords[building_check]
+
+        if len(coords_no_buildings) == 0:
+            counter = counter + 1
+
+        take = take - len(coords_no_buildings)
+        
+        save_coords = np.concatenate((save_coords, coords_no_buildings), axis=0)
+
+        if counter > 20:
+            break
+        
+    print('finished while loop!')
+    save_coords = save_coords.astype(int)
+    height = np.full((len(save_coords),), 0)
+    height = height.astype(int)
+        
+    del building_height
+        
+    return pd.DataFrame(np.column_stack((save_coords, height)), columns=['X','Y','Height'])
+
+
+
+
 def split_image_from_csv_coords(csv_filepath, img, tile_id, output_dir):
     '''
     using the csv of tile coordinates created from create_csv_with_tiles_and_split_points()
@@ -421,13 +540,52 @@ if __name__ == "__main__":
 
 
     building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
-    sentinel_1_directory_desc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Desc/'
     sentinel_1_directory_asc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Texture/Asc/'
     sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/morphology/'
     settlement_map_dir = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
-    percentage = 0.25
+    percentage = 1
 
- 
+
+    features_that_we_want  = ['X','Y','tile','Height',
+                            '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_ERO', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0011_OPN_asc', '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0002_CLS', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0003_DIL_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0003_GRD_asc', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0011_CLS_asc', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0008_OPN', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0004_OPN', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0001_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0012_DIL_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0006_GRD_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0002_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0007_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0002_GRD_asc', '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0001_DIL', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0005_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0005_GRD_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_GRN_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0002_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0012_DIL_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0001_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0012_OPN', '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0003_ERO', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0003_ERO_asc', '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0012_ERO', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0005_DIL_asc', '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0007_ERO', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0006_ERO', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0005_OPN_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0007_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NDB_STM_B0007_DIL', '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0004_ERO', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0013_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0001_CLS_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_GRN_STM_B0004_GRD', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0001_OPN_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0004_DIL', '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0012_OPN', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_SW2_STM_B0002_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0009_DIL', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0002_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0006_CLS_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0013_OPN', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0003_DIL_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0007_GRD', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0012_CLS_asc', '2020-2020_001-365_HL_TSA_SEN2L_RE2_STM_B0011_GRD', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0004_GRD_asc', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0012_CLS', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0008_GRD_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0012_GRD_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0001_CLS', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0003_OPN', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0003_BHT', '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0003_ERO', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0002_CLS', '2020-2020_001-365_HL_TSA_SEN2L_NDB_STM_B0011_CLS', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0009_ERO_asc', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0007_CLS_asc', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0007_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0013_ERO', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0011_ERO', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0001_GRD_asc', '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0011_OPN', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0001_CLS_asc', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0004_ERO', 
+                            '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0001_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0007_OPN_asc', 
+                            '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0007_GRD_asc', '2020-2020_001-365_HL_TSA_SEN2L_RE2_STM_B0008_ERO']
+
+
     important_features = ['2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_ERO', 
                      '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0011_OPN', '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0002_CLS', 
                      '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0003_DIL', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0003_GRD', 
@@ -451,7 +609,7 @@ if __name__ == "__main__":
                      '2020-2020_001-365_HL_TSA_SEN2L_SW2_STM_B0002_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0009_DIL', 
                      '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0002_ERO', '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0006_CLS', 
                      '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0013_OPN', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0003_DIL', 
-                     '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0011_CLS', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0007_GRD', 
                      '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0012_CLS', '2020-2020_001-365_HL_TSA_SEN2L_RE2_STM_B0011_GRD', 
                      '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0004_GRD', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0012_CLS', 
                      '2020-2020_001-365_HL_TSA_VVVHP_BVH_STM_B0008_GRD', '2020-2020_001-365_HL_TSA_VVVHP_BVV_STM_B0012_GRD', 
@@ -475,7 +633,6 @@ if __name__ == "__main__":
 
         print('\n')
         building_height_dir = building_height_directory + sub_dir
-        sentinel_1_desc_dir  = sentinel_1_directory_desc + sub_dir
         sentinel_1_asc_dir  = sentinel_1_directory_asc + sub_dir
         sentinel_2_dir  = sentinel_2_directory + sub_dir
         settle_map_dir  = settlement_map_dir + sub_dir
@@ -493,19 +650,27 @@ if __name__ == "__main__":
                                                     settlement_map,
                                                     apply_settlement_mask=False)
 
+        # get sample of places with zero building height
+        zero_sample = add_some_zero_building_height_samples(building_height,
+                                                            percentage,
+                                                            zero_height_percent=0.1)
 
+        
+        stratified_sample = pd.concat([stratified_sample, zero_sample])
 
         stratified_sample = take_samples(sentinel_1_asc_dir, stratified_sample, 'asc')
-        stratified_sample = take_samples(sentinel_1_desc_dir, stratified_sample, 'desc')
         stratified_sample = take_samples(sentinel_2_dir, stratified_sample)
+        
 
         stratified_sample['tile'] = sub_dir
         list_of_dfs.append(stratified_sample)
 
     
     startified_sample = pd.concat(list_of_dfs)
-    startified_sample.to_csv('building_height_sample_asc.csv', index=False)
+    startified_sample = startified_sample[features_that_we_want]
+    startified_sample.to_csv('C:/Users/egnke/PythonCode/Met_Eireann_git/Ireland_building_heights/Modelling/DataSetCreation/Pixel-Wise-Data/building_height_sample_asc.csv', index=False)
     
+    '''
     ##########################################################################################################
     ##########################################################################################################
 
@@ -532,7 +697,7 @@ if __name__ == "__main__":
 
     split_image_from_csv_coords(csv_output_path, img, test_dir, segmented_tiles_dir_X)
 
-
+    '''
     
     
 

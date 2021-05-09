@@ -36,7 +36,9 @@ def create_directory_to_save_to(output_dir):
 
 
 
-def extract_bands_and_merge(sentinel2_dir, settlement_map, bands=['BLU','GRN','RED']):
+def extract_bands_and_merge(sentinel2_dir, settlement_map, sentinel_1_dir='', 
+                            sent2_bands={'BLU':7,'GRN':7,'RED':7},
+                            sent1_bands={'VVVHP_BVH':11,'VVVHP_BVV':12}):
     '''
     given a list of band names extract the relevant tif files from the directory 
     and stack them into a mutli channel image.
@@ -45,17 +47,36 @@ def extract_bands_and_merge(sentinel2_dir, settlement_map, bands=['BLU','GRN','R
     img_bands = []
     for tif in glob.glob(sentinel2_dir + "/*.tif"):
         
-        if any(band in tif for band in bands):
+        for band, index in sent2_bands.items():
             
-            filepath = tif.replace('\\','/')
-            file_ = gdal.Open(filepath)
-            # 7 is AVG
-            file_as_array = file_.GetRasterBand(7).ReadAsArray()
-            img_bands.append(file_as_array)
+            if band in tif:
+            
+                filepath = tif.replace('\\','/')
+                file_ = gdal.Open(filepath)
+                # 7 is AVG
+                file_as_array = file_.GetRasterBand(index).ReadAsArray()
+                img_bands.append(file_as_array)
+
+
+    # add sentinel-1 band
+    if sentinel_1_dir:
+
+        for tif in glob.glob(sentinel_1_dir + "/*.tif"):
+
+            for band, index in sent1_bands.items():
+                
+                if band in tif:
+                    filepath = tif.replace('\\','/')
+                    file_ = gdal.Open(filepath)
+                    # 7 is AVG
+                    file_as_array = file_.GetRasterBand(index).ReadAsArray()
+                    img_bands.append(file_as_array)
+
 
 
     # make binary 
-    settlement_map = np.where(settlement_map>2, 1, 0)
+    #settlement_map = np.where(settlement_map>2, 1, 0)
+    # already binary as we are just taking the building heights now as the mask
     img_bands.append(settlement_map)
 
     return stack_images_into_volume(img_bands)
@@ -249,7 +270,6 @@ def create_csv_with_tiles_and_split_points(image_raster, split_width,
 def create_data(training=True):
 
     building_height_directory = 'C:/Users/egnke/PythonCode/MetEireann/Dublin_Height_Data/tiled/'
-    sentinel_1_directory_desc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Interpolation/Desc/'
     sentinel_1_directory_asc = 'C:/Users/egnke/PythonCode/MetEireann/Sentinel-1-Data/Sentinel-1/Interpolation/Asc/'
     sentinel_2_directory = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/interpolation/'
     settlement_map_directory = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
@@ -283,12 +303,12 @@ def create_data(training=True):
         height_data = build_height.GetRasterBand(1).ReadAsArray()
 
         if training:
-            create_csv_with_tiles_and_split_points(height_data, 250, 250, 0.5,
+            create_csv_with_tiles_and_split_points(height_data, 60, 60, 0.5,
                                                     sub_dir, csv_output_path, 
                                                     segmented_tiles_dir=segmented_tiles_dir_Y)
 
         else:
-            create_csv_with_tiles_and_split_points(height_data, 250, 250, 0,
+            create_csv_with_tiles_and_split_points(height_data, 60, 60, 0,
                                                     sub_dir, csv_output_path, 
                                                     segmented_tiles_dir=segmented_tiles_dir_Y)
 
@@ -302,11 +322,14 @@ def create_data(training=True):
         
 
         sentinel_2_dir  = sentinel_2_directory + sub_dir
+        sentinel_1_dir  = sentinel_1_directory_asc + sub_dir
 
-        img = extract_bands_and_merge(sentinel_2_dir, settlement_mask[sub_dir], bands=['BLU','GRN','RED','BNR','NDB',
-                                                                                'NDV','NDW','NIR','RE1','RE2',
-                                                                                'RE3','SW1','SW2','TCB','TCG',
-                                                                                'TCW'])
+        #bands = {'NDV':7,'BNR':4,'SW1':2,'GRN':4,'NDB':7,'NDW':4,'TCW':7}
+        bands = {'BLU':7,'GRN':7,'RED':7}
+        #['BLU','GRN','RED','BNR','NDB','NDV','NDW','NIR',
+        #'RE1','RE2','RE3','SW1','SW2','TCB','TCG','TCW']
+
+        img = extract_bands_and_merge(sentinel_2_dir, settlement_mask[sub_dir], sentinel_1_dir, sent2_bands=bands)
 
         split_image_from_csv_coords(csv_output_path, img, sub_dir, segmented_tiles_dir_X)
 

@@ -113,7 +113,8 @@ def make_segment_wide_prediction(img_volume, settlement_map, model, features, fe
 
 
 
-def loop_through_all_tiles_in_folder(folder_path_tiles, folder_path_settle, model, model_features):
+def loop_through_all_tiles_in_folder(folder_path_tiles, folder_path_settle, 
+                                     output_folder, model, model_features):
     '''
     find coresspinding settlement map
     
@@ -130,12 +131,15 @@ def loop_through_all_tiles_in_folder(folder_path_tiles, folder_path_settle, mode
         settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
         tile_rasters, tile_feature_names = loop_through_tile_folder(folder)
         
-        prediction = make_segment_wide_prediction(tile_rasters, 
+        predictions = make_segment_wide_prediction(tile_rasters, 
                                                   settlement_tile, 
                                                   model, tile_feature_names, 
                                                   model_features)
         
         [cols, rows] = settlement_tile.shape
+        
+        filename = output_folder + tile + '.tif'
+        save_predictions(filename, source, predictions, rows, cols)
         
         
         

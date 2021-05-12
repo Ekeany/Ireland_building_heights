@@ -12,7 +12,7 @@ def load_model(pkl_filename):
     with open(pkl_filename, 'rb') as file:
         pickle_model = pickle.load(file)
         
-    return pickle_modelf
+    return pickle_model
 
 
 def get_file_name(file_path):
@@ -113,8 +113,8 @@ def make_segment_wide_prediction(img_volume, settlement_map, model, features, fe
 
 
 
-def loop_through_all_tiles_in_folder(folder_path_tiles, folder_path_settle, 
-                                     output_folder, model, model_features):
+def make_predictions(folder_path_tiles, folder_path_settle, 
+                    output_folder, model, model_features):
     '''
     find coresspinding settlement map
     
@@ -206,3 +206,41 @@ def extract_what_tile(file_path):
     
     else:
         return 0
+
+    
+if __name__ == "__main__":
+
+    model_path = ''
+    output_folder = ''
+    folder_to_tiles = ''
+    settlement_folder = ''
+
+    model_features = ['2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0002_CLS', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0008_OPN',
+                     '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0004_OPN', '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0002_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0001_DIL', '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0005_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_GRN_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0012_OPN', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0003_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0012_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0007_ERO', '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0004_ERO',
+                     '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0006_ERO', '2020-2020_001-365_HL_TSA_SEN2L_NDB_STM_B0007_DIL',
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0013_ERO',
+                     '2020-2020_001-365_HL_TSA_SEN2L_GRN_STM_B0004_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0004_DIL',
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0012_OPN', '2020-2020_001-365_HL_TSA_SEN2L_SW2_STM_B0002_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0009_DIL', '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0002_ERO',
+                     '2020-2020_001-365_HL_TSA_SEN2L_NDW_STM_B0013_OPN', '2020-2020_001-365_HL_TSA_SEN2L_TCW_STM_B0007_GRD', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_RE2_STM_B0011_GRD', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0012_CLS', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0001_CLS', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0003_OPN', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0003_BHT', '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0003_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0002_CLS', '2020-2020_001-365_HL_TSA_SEN2L_NDB_STM_B0011_CLS', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0007_ERO', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0013_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_SW1_STM_B0004_ERO', '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0011_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_RE1_STM_B0011_OPN', '2020-2020_001-365_HL_TSA_SEN2L_TCB_STM_B0004_ERO', 
+                     '2020-2020_001-365_HL_TSA_SEN2L_NIR_STM_B0001_ERO',  '2020-2020_001-365_HL_TSA_SEN2L_RE2_STM_B0008_ERO']
+
+    model = load_model(model_path)
+
+    make_predictions(folder_path_tiles, folder_path_settle, 
+                     output_folder, model, model_features)
+
+
+    

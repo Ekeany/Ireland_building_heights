@@ -1,7 +1,9 @@
 from osgeo import gdal
 import pickle
 import numpy as np
+import pandas as pd
 import re
+import os
 
 
 def load_model(pkl_filename):
@@ -64,7 +66,7 @@ def flatten_list_of_lists(array):
     return [item for sublist in array for item in sublist]
 
 
-def loop_through_tile_folder(file_path):
+def loop_through_tile_folder(directory):
     '''
     loops through every file in a tile folder X0001_Y0001
     and combines the raster bands from each morphology tif file 
@@ -125,21 +127,24 @@ def make_predictions(folder_path_tiles, folder_path_settle,
                         for the settlement map.
     '''
     
-    for folder in os.listdir(folder_path_tiles):
+    for root, folders, files in os.walk(folder_path_tiles):
         
-        tile = extract_what_tile(folder)
-        settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
-        tile_rasters, tile_feature_names = loop_through_tile_folder(folder)
-        
-        predictions = make_segment_wide_prediction(tile_rasters, 
-                                                  settlement_tile, 
-                                                  model, tile_feature_names, 
-                                                  model_features)
-        
-        [cols, rows] = settlement_tile.shape
-        
-        filename = output_folder + tile + '.tif'
-        save_predictions(filename, source, predictions, rows, cols)
+        for folder in folders:
+
+            path_to_folder = os.path.join(folder_path_tiles, folder)
+            tile = extract_what_tile(path_to_folder)
+            settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
+            tile_rasters, tile_feature_names = loop_through_tile_folder(path_to_folder)
+            
+            predictions = make_segment_wide_prediction(tile_rasters, 
+                                                    settlement_tile, 
+                                                    model, tile_feature_names, 
+                                                    model_features)
+            
+            [cols, rows] = settlement_tile.shape
+            
+            filename = output_folder + tile + '.tif'
+            save_predictions(filename, source, predictions, rows, cols)
         
         
         
@@ -176,15 +181,20 @@ def extract_settlement_tile(folder_path_settle, tile):
     settlement tile and return as array
     '''
 
-    for folder in os.listdir(folder_path_settle):
+    for root, folders, files in os.walk(folder_path_settle):
         
-        if tile in folder:
+        for folder in folders:
             
-            for file_ in os.listdir(folder):
-        
-                if file_.endswith(".tif"):
+            path_to_folder = os.path.join(folder_path_settle, folder)
+            
+            if tile in path_to_folder:
 
-                    file_path = os.path.join(folder, file_)
+                for file_ in os.listdir(path_to_folder):
+            
+                    if file_.endswith(".tif"):
+
+                        file_path = os.path.join(path_to_folder, file_)
+                    
                     
     source = gdal.Open(file_path)
     raster_band = source.GetRasterBand(1)
@@ -198,7 +208,7 @@ def extract_what_tile(file_path):
     '''
     given a file path this function will extract the tile name
     '''
-    
+
     x = re.search(r'X\d{4}_Y\d{4}', file_path)
     
     if not None:
@@ -210,10 +220,10 @@ def extract_what_tile(file_path):
     
 if __name__ == "__main__":
 
-    model_path = ''
-    output_folder = ''
-    folder_to_tiles = ''
-    settlement_folder = ''
+    model_path = 'C:/Users/egnke/PythonCode/Ireland_building_heights/Map/final_model.pkl'
+    output_folder = 'C:/Users/egnke/PythonCode/Ireland_building_heights/Map/test_preds/'
+    folder_to_sentinel2_tiles = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/morphology/'
+    folder_to_settlement_tiles = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
 
     model_features = ['2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_ERO', 
                      '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0002_CLS', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0008_OPN',
@@ -239,7 +249,7 @@ if __name__ == "__main__":
 
     model = load_model(model_path)
 
-    make_predictions(folder_path_tiles, folder_path_settle, 
+    make_predictions(folder_to_sentinel2_tiles, folder_to_settlement_tiles, 
                      output_folder, model, model_features)
 
 

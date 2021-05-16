@@ -55,7 +55,7 @@ def extract_band_names_values(file_path, columns):
         raster_band = gdal_obj.GetRasterBand(band)
         col_name = raster_band.GetDescription()
 
-        if col_name in columns:
+        if (col_name + '_' + file_name) in columns:
             raster_array = raster_band.ReadAsArray()
             rasters.append(raster_array)
             names.append(col_name+'_'+file_name)
@@ -99,18 +99,21 @@ def make_segment_wide_prediction(img_volume, settlement_map, model, features, fe
     loop through an image pixel by pixel and make predictions
     save these predictions in a numpy array
     '''
-    width, height, channels = img_volume.shape
-    predictions = np.zeros((width, height, 1))
+    print(img_volume.shape)
+    print(settlement_map.shape)
+    print(features)
+    channel, width, height = img_volume.shape
+    predictions = np.zeros((width, height))
     
     for point_X in range(width):
         for point_Y in range(height):
         
             # if building height map non zero than make a prediction
-            if settlement_map[point_X,point_Y,0] > 0:
+            if settlement_map[point_X,point_Y] > 0:
                 
-                pixel = img_volume[point_X,point_Y,:]
+                pixel = img_volume[:,point_X,point_Y]
                 pixel_data = pd.DataFrame(data=[pixel], columns=features)[feature_order]
-                predictions[point_X, point_Y,0] = model.predict(pixel_data)
+                predictions[point_X, point_Y] = model.predict(pixel_data)
     
     
     return predictions

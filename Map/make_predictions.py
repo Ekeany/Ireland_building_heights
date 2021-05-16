@@ -38,7 +38,7 @@ def get_file_name(file_path):
 
 
 
-def extract_band_names_values(file_path):
+def extract_band_names_values(file_path, columns):
     '''
     given a tif file extract the band names
     and values
@@ -54,10 +54,12 @@ def extract_band_names_values(file_path):
 
         raster_band = gdal_obj.GetRasterBand(band)
         col_name = raster_band.GetDescription()
-        raster_array = raster_band.ReadAsArray()
 
-        rasters.append(raster_array)
-        names.append(col_name+'_'+file_name)
+        if col_name in columns:
+            raster_array = raster_band.ReadAsArray()
+            rasters.append(raster_array)
+            names.append(col_name+'_'+file_name)
+
         
     return rasters, names
    
@@ -66,7 +68,7 @@ def flatten_list_of_lists(array):
     return [item for sublist in array for item in sublist]
 
 
-def loop_through_tile_folder(directory):
+def loop_through_tile_folder(directory, columns):
     '''
     loops through every file in a tile folder X0001_Y0001
     and combines the raster bands from each morphology tif file 
@@ -80,7 +82,7 @@ def loop_through_tile_folder(directory):
         if file_.endswith(".tif"):
             
             file_path = os.path.join(directory,file_)
-            rasters, names = extract_band_names_values(file_path)
+            rasters, names = extract_band_names_values(file_path, columns)
             
             tile_rasters.append(rasters)
             tile_feature_names.append(names)
@@ -134,7 +136,7 @@ def make_predictions(folder_path_tiles, folder_path_settle,
             path_to_folder = os.path.join(folder_path_tiles, folder)
             tile = extract_what_tile(path_to_folder)
             settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
-            tile_rasters, tile_feature_names = loop_through_tile_folder(path_to_folder)
+            tile_rasters, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
             
             predictions = make_segment_wide_prediction(tile_rasters, 
                                                     settlement_tile, 
@@ -195,7 +197,7 @@ def extract_settlement_tile(folder_path_settle, tile):
 
                         file_path = os.path.join(path_to_folder, file_)
                     
-                    
+
     source = gdal.Open(file_path)
     raster_band = source.GetRasterBand(1)
     settle_img = raster_band.ReadAsArray()

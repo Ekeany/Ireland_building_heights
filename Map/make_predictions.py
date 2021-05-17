@@ -1,4 +1,5 @@
 from osgeo import gdal
+from functools import reduce
 import pickle
 import numpy as np
 import pandas as pd
@@ -94,7 +95,7 @@ def convert_df_to_numpy(df, colname):
     '''
     return df.pivot('y', 'x', colname).values
 
-    
+
 
 def flatten_list_of_lists(array):
     return [item for sublist in array for item in sublist]
@@ -240,6 +241,15 @@ def extract_settlement_tile(folder_path_settle, tile):
     return settle_img, source
             
     
+
+def merge_list_of_dataframes(list_of_dfs):
+    '''
+    converts a list of dfs into a single df with columns
+    x,y,val1 + x,y,val2 -> x,y,val1,val2 
+    '''
+    return reduce(lambda x, y: pd.merge(x, y, on = ['y','x']), list_of_dfs)
+
+
 
 def extract_what_tile(file_path):
     '''

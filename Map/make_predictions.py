@@ -64,6 +64,38 @@ def extract_band_names_values(file_path, columns):
     return rasters, names
    
 
+
+def convert_2d_array_to_dataframe(raster, colname):
+    
+    '''
+    converts a raster to dataframe where each pixel value is a row and the x y coordinates are there
+    
+    np.array([[1,2,3],[4,5,6],[7,8,9]]) ->  y,x,value
+                                            0,0,1
+                                            0,1,2
+                                            0,2,3
+                                            1,0,4
+                                            1,1,5
+                                            1,2,6
+                                            2,0,7
+                                            2,1,8
+                                            2,2,9
+    '''
+    
+    return (pd.DataFrame(raster)
+             .stack()
+             .rename_axis(['y', 'x'])
+             .reset_index(name=colname))
+
+
+def convert_df_to_numpy(df, colname):
+    '''
+    returns the convert_2d_array_to_dataframe datframe back to its original form
+    '''
+    return df.pivot('y', 'x', colname).values
+
+    
+
 def flatten_list_of_lists(array):
     return [item for sublist in array for item in sublist]
 

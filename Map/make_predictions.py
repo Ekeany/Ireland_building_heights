@@ -49,7 +49,7 @@ def extract_band_names_values(file_path, columns):
     num_bands = gdal_obj.RasterCount
 
     file_name = get_file_name(file_path)
-    rasters = []
+    dfs = []
     names = []
     for band in range(1, num_bands+1):
 
@@ -58,11 +58,15 @@ def extract_band_names_values(file_path, columns):
 
         if (col_name + '_' + file_name) in columns:
             raster_array = raster_band.ReadAsArray()
-            rasters.append(raster_array)
+            dfs.append(convert_2d_array_to_dataframe(raster_array, col_name + '_' + file_name))
             names.append(col_name+'_'+file_name)
 
-        
-    return rasters, names
+
+    if len(dfs) > 0:
+        return merge_list_of_dataframes(dfs), names
+
+    else:
+        return None, None
    
 
 
@@ -93,6 +97,7 @@ def convert_df_to_numpy(df, colname):
     '''
     returns the convert_2d_array_to_dataframe datframe back to its original form
     '''
+    df.sort_values(by=['y','x'], inplace=True)
     return df.pivot('y', 'x', colname).values
 
 
@@ -108,22 +113,22 @@ def loop_through_tile_folder(directory, columns):
     in the folder together and also documents the names of each band or feature.
     '''
     
-    tile_rasters = []
+    tile_dfs = []
     tile_feature_names = []
     for file_ in os.listdir(directory):
         
         if file_.endswith(".tif"):
             
             file_path = os.path.join(directory,file_)
-            rasters, names = extract_band_names_values(file_path, columns)
+            df, names = extract_band_names_values(file_path, columns)
             
-            tile_rasters.append(rasters)
-            tile_feature_names.append(names)
+            if df is not None:
+                tile_dfs.append(df)
+                tile_feature_names.append(names)
     
-    tile_rasters = flatten_list_of_lists(tile_rasters)
     tile_feature_names = flatten_list_of_lists(tile_feature_names)
     
-    return np.array(tile_rasters), tile_feature_names
+    return merge_list_of_dataframes(tile_dfs), tile_feature_names
 
 
 
@@ -132,9 +137,7 @@ def make_segment_wide_prediction(img_volume, settlement_map, model, features, fe
     loop through an image pixel by pixel and make predictions
     save these predictions in a numpy array
     '''
-    print(img_volume.shape)
-    print(settlement_map.shape)
-    print(features)
+
     channel, width, height = img_volume.shape
     predictions = np.zeros((width, height))
     
@@ -150,6 +153,34 @@ def make_segment_wide_prediction(img_volume, settlement_map, model, features, fe
     
     
     return predictions
+
+
+
+def make_predictions_using_df(tile_df, settlement_raster, model, model_features):
+    '''
+    makes predictions by converting the image to a df make predicitions
+    then convert the df back to an image..
+    '''
+
+    # convert settlement to df
+    settle_df = convert_2d_array_to_dataframe(settlement_raster, 'settlement_value')
+    merged_df = pd.merge(tile_df, settle_df, on=['y','x'], how='inner')
+
+    # filter data to where buildings are 
+    buildings = merged_df[merged_df['settlement_value'] > 2]
+
+    # make predictions
+    X = buildings.drop(['y','x','settlement_value'], axis=1)
+    buildings['building_heights'] = model.predict(X[model_features])
+
+    # merge predicitons back to df and fill in nas with a building height of zero
+    predictions_df = pd.merge(tile_df, buildings[['y','x','building_heights']], 
+                              on=['y','x'], how='left')
+
+    predictions_df['building_heights'] = predictions_df['building_heights'].fillna(0)
+    img = convert_df_to_numpy(predictions_df, 'building_heights')
+
+    return img
 
 
 
@@ -172,12 +203,9 @@ def make_predictions(folder_path_tiles, folder_path_settle,
             path_to_folder = os.path.join(folder_path_tiles, folder)
             tile = extract_what_tile(path_to_folder)
             settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
-            tile_rasters, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
-            
-            predictions = make_segment_wide_prediction(tile_rasters, 
-                                                    settlement_tile, 
-                                                    model, tile_feature_names, 
-                                                    model_features)
+            tile_df, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
+
+            predictions = make_predictions_using_df(tile_df, settlement_tile, model, model_features)
             
             [cols, rows] = settlement_tile.shape
             

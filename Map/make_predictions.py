@@ -203,14 +203,17 @@ def make_predictions(folder_path_tiles, folder_path_settle,
             path_to_folder = os.path.join(folder_path_tiles, folder)
             tile = extract_what_tile(path_to_folder)
             settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
-            tile_df, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
 
-            predictions = make_predictions_using_df(tile_df, settlement_tile, model, model_features)
-            
-            [cols, rows] = settlement_tile.shape
-            
-            filename = output_folder + tile + '.tif'
-            save_predictions(filename, source, predictions, rows, cols)
+            if settlement_tile is not None:
+                
+                tile_df, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
+
+                predictions = make_predictions_using_df(tile_df, settlement_tile, model, model_features)
+                
+                [cols, rows] = settlement_tile.shape
+                
+                filename = output_folder + tile + '.tif'
+                save_predictions(filename, source, predictions, rows, cols)
         
         
         
@@ -262,11 +265,14 @@ def extract_settlement_tile(folder_path_settle, tile):
                         file_path = os.path.join(path_to_folder, file_)
                     
 
-    source = gdal.Open(file_path)
-    raster_band = source.GetRasterBand(1)
-    settle_img = raster_band.ReadAsArray()
-    
-    return settle_img, source
+                    source = gdal.Open(file_path)
+                    raster_band = source.GetRasterBand(1)
+                    settle_img = raster_band.ReadAsArray()
+                    
+                    return settle_img, source
+
+            else:
+                return None, None
             
     
 

@@ -178,6 +178,10 @@ def make_predictions_using_df(tile_df, settlement_raster, model, model_features)
                               on=['y','x'], how='left')
 
     predictions_df['building_heights'] = predictions_df['building_heights'].fillna(0)
+    predictions_df['building_heights'] = (np.where((predictions_df.isin([-9999]).any(axis=1)) & 
+                                                    (predictions_df['building_heights'] != 0), 
+                                                    -100, predictions_df['building_heights']))
+    
     img = convert_df_to_numpy(predictions_df, 'building_heights')
 
     return img
@@ -205,7 +209,7 @@ def make_predictions(folder_path_tiles, folder_path_settle,
             settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
 
             if settlement_tile is not None:
-                
+
                 tile_df, tile_feature_names = loop_through_tile_folder(path_to_folder, columns=model_features)
 
                 predictions = make_predictions_using_df(tile_df, settlement_tile, model, model_features)

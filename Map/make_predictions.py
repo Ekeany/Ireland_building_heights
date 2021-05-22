@@ -293,14 +293,11 @@ def extract_what_tile(file_path):
     '''
     given a file path this function will extract the tile name
     '''
-
-    x = re.search(r'X\d{4}_Y\d{4}', file_path)
-    
-    if not None:
-        return x[0]
-    
-    else:
-        return 0
+    for part in file_path.split('/'):
+        if('X' in part) and ('Y' in part):
+            return(part)
+        
+    return 0
 
     
 if __name__ == "__main__":

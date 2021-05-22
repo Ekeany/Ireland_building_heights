@@ -7,6 +7,7 @@ import re
 import os
 
 
+
 def load_model(pkl_filename):
     '''
     load model object from pickle file
@@ -171,20 +172,28 @@ def make_predictions_using_df(tile_df, settlement_raster, model, model_features)
 
     # make predictions
     X = buildings.drop(['y','x','settlement_value'], axis=1)
-    buildings['building_heights'] = model.predict(X[model_features])
+    if len(X) > 0:
+        buildings['building_heights'] = model.predict(X[model_features])
 
-    # merge predicitons back to df and fill in nas with a building height of zero
-    predictions_df = pd.merge(tile_df, buildings[['y','x','building_heights']], 
-                              on=['y','x'], how='left')
+        # merge predicitons back to df and fill in nas with a building height of zero
+        predictions_df = pd.merge(tile_df, buildings[['y','x','building_heights']], 
+                                on=['y','x'], how='left')
 
-    predictions_df['building_heights'] = predictions_df['building_heights'].fillna(0)
-    predictions_df['building_heights'] = (np.where((predictions_df.isin([-9999]).any(axis=1)) & 
-                                                    (predictions_df['building_heights'] != 0), 
-                                                    -100, predictions_df['building_heights']))
+        predictions_df['building_heights'] = predictions_df['building_heights'].fillna(0)
+        predictions_df['building_heights'] = (np.where((predictions_df.isin([-9999]).any(axis=1)) & 
+                                                        (predictions_df['building_heights'] != 0), 
+                                                        -100, predictions_df['building_heights']))
     
-    img = convert_df_to_numpy(predictions_df, 'building_heights')
+        img = convert_df_to_numpy(predictions_df, 'building_heights')
 
-    return img
+        return img
+
+    else:
+        print('No Data !')
+        tile_df['building_heights'] = 0
+        img = convert_df_to_numpy(tile_df, 'building_heights')
+
+        return img
 
 
 
@@ -206,6 +215,7 @@ def make_predictions(folder_path_tiles, folder_path_settle,
 
             path_to_folder = os.path.join(folder_path_tiles, folder)
             tile = extract_what_tile(path_to_folder)
+            print(tile)
             settlement_tile, source = extract_settlement_tile(folder_path_settle, tile)
 
             if settlement_tile is not None:
@@ -275,8 +285,8 @@ def extract_settlement_tile(folder_path_settle, tile):
                     
                     return settle_img, source
 
-            else:
-                return None, None
+            
+    return None, None
             
     
 
@@ -302,10 +312,10 @@ def extract_what_tile(file_path):
     
 if __name__ == "__main__":
 
-    model_path = 'C:/Users/egnke/PythonCode/Ireland_building_heights/Map/final_model.pkl'
-    output_folder = 'C:/Users/egnke/PythonCode/Ireland_building_heights/Map/test_preds/'
-    folder_to_sentinel2_tiles = 'C:/Users/egnke/PythonCode/MetEireann/Sentienl-2-Data/Processed_Data/morphology/'
-    folder_to_settlement_tiles = 'C:/Users/egnke/PythonCode/MetEireann/Settlement_Map/tiled/'
+    model_path = '/home/ubuntu/Map/final_model.pkl'
+    output_folder = '/home/ubuntu/newvolume/preds/'
+    folder_to_sentinel2_tiles = '/home/ubuntu/newvolume/morphology/'
+    folder_to_settlement_tiles = '/home/ubuntu/newvolume/settlement_tiles/'
 
     model_features = ['2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_GRD', '2020-2020_001-365_HL_TSA_SEN2L_NDV_STM_B0007_ERO', 
                      '2020-2020_001-365_HL_TSA_SEN2L_BNR_STM_B0002_CLS', '2020-2020_001-365_HL_TSA_SEN2L_TCG_STM_B0008_OPN',

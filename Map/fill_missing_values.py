@@ -3,6 +3,8 @@ from osgeo import gdal
 import numpy as np
 import pandas as pd
 from statistics import mean
+from tqdm import tqdm
+
 
 
 def convert_2d_array_to_dataframe(raster, colname):
@@ -28,12 +30,14 @@ def convert_2d_array_to_dataframe(raster, colname):
              .reset_index(name=colname))
 
 
+
 def convert_df_to_numpy(df, colname):
     '''
     returns the convert_2d_array_to_dataframe datframe back to its original form
     '''
     df.sort_values(by=['y','x'], inplace=True)
     return df.pivot('y', 'x', colname).values
+
 
 
 def average_nearest_neighbours(a, x, y, k=10):
@@ -59,8 +63,12 @@ def average_nearest_neighbours(a, x, y, k=10):
         x_, y_ = r[idx], c[idx]
         values.append(float(a[x_, y_]))
         
+    if len(values) > 0:
+        return mean(values)
 
-    return mean(values)
+    else:
+        return 4.95
+
 
 
 def fill_missing_values(filepath):
@@ -79,19 +87,20 @@ def fill_missing_values(filepath):
                                                                                    row['y'], k=10)
                                                                         , axis=1))
 
-    else:
-        pass
-
-
-
-    tile_df = pd.merge(tile_df, missing_values[['y','x','building_height_filled']], 
+        tile_df = pd.merge(tile_df, missing_values[['y','x','building_height_filled']], 
                         on=['y','x'], how='left')
 
 
-    tile_df['building_height_filled'] = (tile_df['building_height_filled']
-                                         .fillna(tile_df['building_height_preds']))
+        tile_df['building_height_filled'] = (tile_df['building_height_filled']
+                                            .fillna(tile_df['building_height_preds']))
 
-    return convert_df_to_numpy(tile_df, colname='building_height_filled'), product
+        return convert_df_to_numpy(tile_df, colname='building_height_filled'), product
+
+
+    else:
+
+        return band_data, product
+
 
 
 
@@ -121,15 +130,18 @@ def save_gdal(filepath, source, array, rows, cols):
 
 if __name__ == "__main__":
 
-    output_folder = ''
-    input_folder  = ''
 
-    for filename in os.listdir(directory):
+    input_folder  = '/home/ubuntu/newvolume/combined_tiles/'
+    output_folder = '/home/ubuntu/newvolume/cleaned_combined_tiles/'
+
+    for filename in tqdm(os.listdir(input_folder)):
         
         if filename.endswith(".tif"):
             
-            filepath = os.path.join(directory, filename)
+            filepath = os.path.join(input_folder, filename)
+            outputpath = os.path.join(output_folder, filename)
+
             filled_scene, source = fill_missing_values(filepath)
             
             rows, cols = filled_scene.shape
-            save_gdal(filepath, source, filled_scene, rows, cols)
+            save_gdal(outputpath, source, filled_scene, rows, cols)

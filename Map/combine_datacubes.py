@@ -3,6 +3,7 @@ import os
 from osgeo import gdal
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 def extract_tiles(folder_path):
@@ -23,7 +24,7 @@ def extract_tiles(folder_path):
 
                 if file_.endswith(".tif"):
 
-                    file_path = os.path.join(path_to_folder, file_).replace('/','\\')
+                    file_path = os.path.join(path_to_folder, file_)
                     
                     filepaths.append(file_path)
                     filenames.append(file_)
@@ -52,9 +53,10 @@ def get_mean_of_all_files(subset):
         
         source = gdal.Open(file_)
         raster_band = source.GetRasterBand(1)
-        settle_img = raster_band.ReadAsArray()
+        scene = raster_band.ReadAsArray()
         
-        files.append(settle_img)
+        scene = scene.astype('float')
+        files.append(scene)
         
     return get_mean_of_arrays(files), source
 
@@ -87,7 +89,7 @@ def combine_multiple_tiles_save_to_dir(files, output_folder):
 
     all_filenames = files['Filename'].unique()
 
-    for file_ in all_filenames:
+    for file_ in tqdm(all_filenames):
         
         subset = files[files['Filename'] == file_]
         
@@ -107,8 +109,8 @@ def combine_multiple_tiles_save_to_dir(files, output_folder):
 
 if __name__ == "__main__":
 
-    output_folder = ''
-    input_folder  = ''
+    output_folder = '/home/ubuntu/newvolume/combined_tiles/'
+    input_folder  = '/home/ubuntu/newvolume/tiles/'
 
     files = extract_tiles(input_folder)
     files = files[files['Filename']!='merged_tile.tif']
